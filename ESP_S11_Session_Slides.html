@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESP Stream 11 — Session Slides</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,200;0,9..144,400;0,9..144,700;1,9..144,200;1,9..144,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --t:#1A7A8A;--tm:#2A9BAD;--tl:#D6F0F4;
+  --ink:#0F1923;--im:#2D3E4A;--il:#7A8E96;
+  --w:#FFFFFF;--off:#FAFAF8;--s:#F4F6F7;
+  --gold:#B8962E;--gl:#FBF4E0;
+  --serif:'Fraunces',serif;--sans:'DM Sans',sans-serif;
+}
+html,body{height:100%;overflow:hidden;background:var(--ink)}
+body{font-family:var(--sans);color:var(--w)}
+
+/* ── SHELL ── */
+#shell{display:flex;height:100vh;flex-direction:column}
+.topnav{height:48px;background:rgba(15,25,35,0.95);border-bottom:1px solid rgba(42,155,173,0.2);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;backdrop-filter:blur(8px)}
+.tn-brand{font-size:11px;font-weight:500;color:var(--tm);letter-spacing:0.15em;text-transform:uppercase;white-space:nowrap}
+.tn-sep{width:1px;height:18px;background:rgba(255,255,255,0.1)}
+.session-select{background:transparent;border:1px solid rgba(42,155,173,0.3);border-radius:3px;color:var(--w);font-family:var(--sans);font-size:11px;padding:4px 10px;outline:none;cursor:pointer}
+.session-select option{background:var(--ink);color:var(--w)}
+.slide-counter{font-size:11px;color:var(--il);margin-left:auto;white-space:nowrap}
+.nav-btn{background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:3px;color:var(--il);font-family:var(--sans);font-size:11px;padding:4px 14px;cursor:pointer;transition:all 0.2s}
+.nav-btn:hover{border-color:var(--tm);color:var(--tm)}
+.nav-btn:disabled{opacity:0.3;cursor:not-allowed}
+
+/* ── SLIDE STAGE ── */
+#stage{flex:1;position:relative;overflow:hidden}
+.deck{position:absolute;inset:0;display:none}
+.deck.active{display:flex;flex-direction:column}
+.slide{position:absolute;inset:0;display:none;padding:0;overflow:hidden}
+.slide.active{display:flex;flex-direction:column}
+
+/* ── SLIDE TYPES ── */
+
+/* COVER */
+.s-cover{background:var(--ink);position:relative;justify-content:flex-end;padding:60px 80px}
+.s-cover::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 70% 40%,rgba(42,155,173,0.12) 0%,transparent 70%)}
+.s-cover .session-num{font-size:11px;font-weight:500;letter-spacing:0.25em;text-transform:uppercase;color:var(--tm);margin-bottom:20px}
+.s-cover .session-title{font-family:var(--serif);font-weight:200;font-size:clamp(36px,5vw,64px);line-height:1.05;color:var(--w);margin-bottom:20px;max-width:760px}
+.s-cover .session-hook{font-size:clamp(14px,1.5vw,18px);font-weight:300;color:rgba(255,255,255,0.55);max-width:600px;line-height:1.6}
+.s-cover .corner-mark{position:absolute;top:60px;right:80px;font-family:var(--serif);font-size:clamp(80px,12vw,160px);font-weight:200;color:rgba(42,155,173,0.08);line-height:1;user-select:none}
+
+/* STATEMENT — full screen text punch */
+.s-statement{background:var(--t);display:flex;align-items:center;justify-content:center;padding:80px}
+.s-statement .stmt{font-family:var(--serif);font-weight:200;font-size:clamp(24px,3.5vw,52px);line-height:1.2;color:var(--w);text-align:center;max-width:900px}
+.s-statement .stmt em{font-style:italic;color:rgba(255,255,255,0.7)}
+.s-statement.dark{background:var(--ink)}
+.s-statement.gold{background:var(--gold)}
+
+/* CONTENT — two zone */
+.s-content{background:var(--w);color:var(--ink);flex-direction:row}
+.s-content .left-zone{width:38%;background:var(--ink);padding:60px 50px;display:flex;flex-direction:column;justify-content:center;flex-shrink:0}
+.s-content .right-zone{flex:1;padding:60px 60px;display:flex;flex-direction:column;justify-content:center;overflow-y:auto}
+.zone-label{font-size:10px;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:var(--tm);margin-bottom:16px}
+.zone-title{font-family:var(--serif);font-weight:400;font-size:clamp(22px,2.5vw,36px);line-height:1.15;color:var(--w);margin-bottom:16px}
+.zone-sub{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6}
+.rz-title{font-size:12px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--il);margin-bottom:20px}
+.rz-body{font-size:15px;font-weight:300;color:var(--im);line-height:1.75;margin-bottom:12px}
+.rz-body strong{font-weight:500;color:var(--ink)}
+.point-list{list-style:none;display:flex;flex-direction:column;gap:14px}
+.point-list li{display:flex;gap:14px;align-items:flex-start;font-size:14px;font-weight:300;color:var(--im);line-height:1.6}
+.point-list li::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--t);flex-shrink:0;margin-top:7px}
+.point-list li strong{font-weight:500;color:var(--ink);display:block;font-size:13px;margin-bottom:2px}
+
+/* SPLIT — two columns equal */
+.s-split{background:var(--off);color:var(--ink);flex-direction:row}
+.s-split .col{flex:1;padding:60px 50px;display:flex;flex-direction:column;justify-content:center}
+.s-split .col:first-child{border-right:1px solid rgba(42,155,173,0.12)}
+.col-label{font-size:10px;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:var(--t);margin-bottom:14px}
+.col-title{font-family:var(--serif);font-weight:400;font-size:clamp(18px,2vw,28px);line-height:1.2;color:var(--ink);margin-bottom:14px}
+.col-body{font-size:14px;font-weight:300;color:var(--im);line-height:1.7}
+.col-body+.col-body{margin-top:10px}
+
+/* STAT */
+.s-stats{background:var(--ink);flex-direction:column;justify-content:center;padding:60px 80px}
+.stats-label{font-size:10px;font-weight:500;letter-spacing:0.25em;text-transform:uppercase;color:var(--tm);margin-bottom:40px}
+.stats-title{font-family:var(--serif);font-weight:200;font-size:clamp(18px,2vw,28px);color:rgba(255,255,255,0.6);margin-bottom:60px;max-width:700px;line-height:1.4}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:40px}
+.stat-item{}
+.stat-num{font-family:var(--serif);font-size:clamp(40px,6vw,80px);font-weight:200;color:var(--tm);line-height:1}
+.stat-desc{font-size:12px;font-weight:300;color:rgba(255,255,255,0.5);margin-top:8px;line-height:1.5;max-width:200px}
+.stat-source{font-size:10px;color:rgba(255,255,255,0.25);margin-top:4px}
+
+/* FRAMEWORK */
+.s-framework{background:var(--w);color:var(--ink);padding:60px 80px;justify-content:center}
+.fw-label{font-size:10px;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:var(--t);margin-bottom:16px}
+.fw-title{font-family:var(--serif);font-weight:400;font-size:clamp(22px,2.5vw,36px);color:var(--ink);margin-bottom:40px;line-height:1.2}
+.fw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px}
+.fw-item{padding:24px 20px;border:1px solid rgba(42,155,173,0.15);border-radius:3px;border-top:3px solid var(--t)}
+.fw-item.gold-top{border-top-color:var(--gold)}
+.fw-item.dark-top{border-top-color:var(--ink)}
+.fw-num{font-family:var(--serif);font-size:32px;font-weight:200;color:rgba(42,155,173,0.25);line-height:1;margin-bottom:10px}
+.fw-name{font-size:12px;font-weight:500;color:var(--ink);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px}
+.fw-desc{font-size:12px;font-weight:300;color:var(--il);line-height:1.6}
+
+/* EXAMPLE — story-driven */
+.s-example{background:var(--s);color:var(--ink);flex-direction:row}
+.s-example .ex-left{width:42%;background:var(--t);padding:60px 50px;display:flex;flex-direction:column;justify-content:center;flex-shrink:0}
+.s-example .ex-right{flex:1;padding:60px 60px;display:flex;flex-direction:column;justify-content:center}
+.ex-tag{font-size:10px;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:16px}
+.ex-heading{font-family:var(--serif);font-weight:400;font-size:clamp(22px,2.5vw,34px);color:var(--w);line-height:1.2;margin-bottom:20px}
+.ex-quote{font-family:var(--serif);font-weight:200;font-style:italic;font-size:clamp(14px,1.5vw,18px);color:rgba(255,255,255,0.75);line-height:1.5;border-left:2px solid rgba(255,255,255,0.3);padding-left:20px}
+.ex-body{font-size:14px;font-weight:300;color:var(--im);line-height:1.75;margin-bottom:14px}
+.ex-body strong{font-weight:500;color:var(--ink)}
+.ex-lesson{background:var(--tl);padding:20px 24px;border-radius:3px;margin-top:16px}
+.ex-lesson-label{font-size:10px;font-weight:500;letter-spacing:0.15em;text-transform:uppercase;color:var(--t);margin-bottom:6px}
+.ex-lesson-text{font-size:13px;font-weight:400;color:var(--im);line-height:1.6}
+
+/* ACTIVITY */
+.s-activity{background:var(--ink);padding:60px 80px;flex-direction:column;justify-content:center}
+.act-label{font-size:10px;font-weight:500;letter-spacing:0.25em;text-transform:uppercase;color:var(--gold);margin-bottom:20px}
+.act-title{font-family:var(--serif);font-weight:200;font-size:clamp(22px,3vw,42px);color:var(--w);margin-bottom:40px;line-height:1.15}
+.act-steps{display:flex;flex-direction:column;gap:16px;max-width:800px}
+.act-step{display:flex;gap:24px;align-items:flex-start}
+.step-n{font-family:var(--serif);font-size:32px;font-weight:200;color:var(--tm);flex-shrink:0;line-height:1;width:36px}
+.step-body{}
+.step-title{font-size:13px;font-weight:500;color:var(--w);margin-bottom:4px;letter-spacing:0.04em}
+.step-desc{font-size:12px;font-weight:300;color:rgba(255,255,255,0.5);line-height:1.6}
+.act-time{font-size:11px;color:rgba(255,255,255,0.25);margin-top:4px}
+
+/* CLOSE */
+.s-close{background:var(--t);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px;text-align:center}
+.close-tag{font-size:10px;font-weight:500;letter-spacing:0.25em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:20px}
+.close-title{font-family:var(--serif);font-weight:200;font-size:clamp(28px,4vw,52px);color:var(--w);line-height:1.1;margin-bottom:24px;max-width:800px}
+.close-sub{font-size:14px;font-weight:300;color:rgba(255,255,255,0.65);line-height:1.7;max-width:600px;margin-bottom:40px}
+.close-eob{background:rgba(255,255,255,0.12);padding:16px 32px;border-radius:3px;font-size:12px;font-weight:500;color:var(--w);letter-spacing:0.1em;text-transform:uppercase}
+
+/* IMAGE NOTES */
+.img-note{position:absolute;bottom:20px;right:24px;font-size:10px;color:rgba(255,255,255,0.2);font-style:italic;max-width:300px;text-align:right}
+.img-note-dark{color:rgba(0,0,0,0.2)}
+
+/* PROGRESS BAR */
+.progress-bar{height:2px;background:rgba(42,155,173,0.15);position:relative;overflow:hidden;flex-shrink:0}
+.progress-fill{height:100%;background:var(--tm);transition:width 0.3s ease}
+
+/* QUOTE PULL */
+.pull-quote{font-family:var(--serif);font-weight:400;font-style:italic;font-size:clamp(16px,1.8vw,22px);color:var(--t);line-height:1.5;padding:20px 0;border-top:1px solid rgba(42,155,173,0.2);border-bottom:1px solid rgba(42,155,173,0.2);margin:20px 0}
+
+/* HIGHLIGHT BOX */
+.highlight{background:var(--tl);border-left:3px solid var(--t);padding:16px 20px;font-size:13px;font-weight:400;color:var(--im);line-height:1.6;margin:16px 0;border-radius:0 3px 3px 0}
+.highlight.gold{background:var(--gl);border-left-color:var(--gold)}
+.highlight.dark{background:rgba(15,25,35,0.06);border-left-color:var(--ink)}
+
+/* KEYBOARD SHORTCUT HINT */
+.key-hint{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,0.2);pointer-events:none;letter-spacing:0.12em}
+</style>
+</head>
+<body>
+<div id="shell">
+  <div class="topnav">
+    <span class="tn-brand">ESP · S11</span>
+    <div class="tn-sep"></div>
+    <select class="session-select" id="session-select" onchange="goToSession(this.value)">
+      <option value="0">Session 1 — Who Are You Working For?</option>
+      <option value="1">Session 2 — Words That Work</option>
+      <option value="2">Session 3 — Carry It Right</option>
+      <option value="3">Session 4 — The Machine Behind the Magic</option>
+      <option value="4">Session 5 — Your New Best Friend is a Robot</option>
+      <option value="5">Session 6 — Lock It Down</option>
+      <option value="6">Session 7 — Think Like the Person You Support</option>
+      <option value="7">Session 8 — Everyone's Watching</option>
+      <option value="8">Session 9 — In the Deep End</option>
+      <option value="9">Session 10 — The Longer Game</option>
+      <option value="10">Session 11 — How to Not Fall Apart</option>
+      <option value="11">Session 12 — Build Your Bible</option>
+      <option value="12">Session 13 — Ready or Not</option>
+      <option value="13">Session 14 — Show Your Work</option>
+    </select>
+    <button class="nav-btn" id="prev-btn" onclick="prevSlide()">← Prev</button>
+    <button class="nav-btn" id="next-btn" onclick="nextSlide()">Next →</button>
+    <span class="slide-counter" id="slide-counter">1 / 1</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  <div id="stage"></div>
+</div>
+<div class="key-hint">← → arrow keys to navigate · dropdown to switch sessions</div>
+
+<script>
+// ── DATA ────────────────────────────────────────────────────
+const sessions = [
+
+// ════════════════════════════════════════════════════════════
+// SESSION 1 — WHO ARE YOU WORKING FOR?
+// ════════════════════════════════════════════════════════════
+{
+title:"Who Are You Working For?",
+num:"Session 1",
+slides:[
+{type:'cover', num:'Session 01', title:'Who Are You\nWorking For?', hook:'Before you learn a single tool or framework, you need to answer this question honestly. Because the answer determines everything else about how you show up.', corner:'01'},
+
+{type:'statement', bg:'dark', text:'Most people in this role think their job is to <em>complete tasks.</em> The best people in this role know their job is to <em>restore capacity.</em>'},
+
+{type:'stats', label:'The executive reality', title:'This is the world your executive lives in. It is also the world you are entering.', stats:[
+  {num:'62.5', desc:'hours per week the average CEO works', source:'Harvard Business Review'},
+  {num:'35,000', desc:'decisions a human brain processes daily — executives make far more', source:'Columbia University Research'},
+  {num:'70%', desc:'of C-suite executives say burnout is impairing their decision-making', source:'HR Dive, 2025'},
+  {num:'$322B', desc:'lost annually in organisations due to executive cognitive overload', source:'IT Revolution, 2024'},
+]},
+
+{type:'content', left:{label:'The shift', title:'From task executor to strategic partner', sub:'This is not a description of seniority. It is a description of mindset.'}, right:{title:'What this actually means', points:[
+  {head:'Task executor', body:'Waits to be told what to do. Completes the task. Reports back. Moves to the next one.'},
+  {head:'Strategic partner', body:'Understands what the executive is trying to achieve. Acts in service of that, not just the instruction. Often acts before being asked.'},
+  {head:'The difference in practice', body:'An executor books the flight when told. A partner notices the itinerary creates no thinking time before the board meeting and quietly restructures it.'},
+]}},
+
+{type:'example', left:{tag:'Real example', heading:'Ann Hiatt: EA to Jeff Bezos, Eric Schmidt, Marissa Mayer', quote:'"I wasn\'t just managing their calendars. I was managing their cognitive load. My job was to make sure that when they walked into the room that mattered, they had everything they needed and nothing they didn\'t."'}, right:{body:[
+  'Ann Hiatt spent her career as EA to three of the most consequential leaders in tech. She did not do it by being efficient. She did it by understanding <strong>what each executive needed to be at their best</strong> and building systems that delivered exactly that.',
+  'She became a strategic partner — not because she was given more authority, but because she <strong>took more responsibility.</strong>',
+  'That is the model.',
+]}},
+
+{type:'framework', label:'The SCOUTED Framework', title:'Seven qualities TalentWorks uses to assess, develop, and match every graduate.', items:[
+  {num:'S', name:'Self-Awareness', desc:'Know how you land on others. Know your defaults under pressure.'},
+  {num:'C', name:'Conceptual Thinking', desc:'See patterns. Connect dots others miss. Think in systems.'},
+  {num:'O', name:'Openness to Learning', desc:'Be coachable. Update your views when the evidence changes.'},
+  {num:'U', name:'Utilitarian Thinking', desc:'Prioritise ruthlessly. Not everything matters equally.'},
+  {num:'T', name:'Team Awareness', desc:'Read the room. Read the organisation. Know who needs what.'},
+  {num:'E', name:'Empathy Practice', desc:'Feel what your executive feels. Not to carry it — to serve it better.'},
+  {num:'D', name:'Drive', desc:'Act. Initiate. Move things forward without being pushed.'},
+]},
+
+{type:'split', left:{label:'What ESP trains you for', title:'Executive Support Assistant', body:'You are being trained to operate at the highest level of professional trust. To work in the room where decisions are made. To be the person who makes everything else possible.\n\nThis is not a junior role. The ceiling is not administrative.'}, right:{label:'What the market pays', title:'Starting at ₦150k–₦400k/month', body:'TalentWorks graduates placed with clients start in this range — and grow from there.\n\nObong Idiong was Tony Elumelu\'s Executive Assistant before becoming CEO of Heirs Holdings.\n\nThe role is a launchpad. What you do with it is up to you.'}},
+
+{type:'activity', label:'Today\'s Assignment', title:'Your Partnership Philosophy', steps:[
+  {n:'1', title:'Write the problem statement', desc:'In one paragraph: what does your executive lose when they do not have the right support? Be specific. Use what you heard today.', time:'10 minutes'},
+  {n:'2', title:'Write your philosophy', desc:'In one paragraph: what do you believe your role is? Not what it says in a job description — what YOU believe. This goes into your EOB.', time:'15 minutes'},
+  {n:'3', title:'Peer share', desc:'Read your philosophy to one other person. They tell you what landed and what felt unclear.', time:'10 minutes'},
+]},
+
+{type:'close', tag:'End of Session 1', title:'Your executive\'s capacity is your responsibility.', sub:'Everything you learn over the next 14 sessions is in service of one thing: making the person you support more effective at the work that matters. Start there. Stay there.', eob:'EOB Component: Partnership Philosophy'}
+]},
+
+// ════════════════════════════════════════════════════════════
+// SESSION 2 — WORDS THAT WORK
+// ════════════════════════════════════════════════════════════
+{
+title:"Words That Work",
+num:"Session 2",
+slides:[
+{type:'cover', num:'Session 02', title:'Words\nThat Work', hook:'Every email you write on behalf of your executive is carrying their reputation. Every message, every response, every briefing note — all of it is a signal about who they are. And by extension, who you are.', corner:'02'},
+
+{type:'statement', bg:'teal', text:'People do not remember what you said. They remember how your words made them <em>feel about the sender.</em>'},
+
+{type:'stats', label:'Why communication is the core skill', title:'Executive support is overwhelmingly a communication function.', stats:[
+  {num:'60%', desc:'of all executive support work involves written or spoken communication in some form', source:'SnackNation EA Research, 2025'},
+  {num:'40+', desc:'context switches per day when checking email every 6 minutes — the average in most offices', source:'2025 Leadership Research'},
+  {num:'3x', desc:'the productivity cost of poor communication — every unclear email creates at least two follow-up exchanges', source:'McKinsey Global Institute'},
+  {num:'100%', desc:'of the time, your words are treated as if they are your executive\'s. You are their voice.', source:'SnackNation State of the EA Report'},
+]},
+
+{type:'content', left:{label:'The executive email', title:'Four parts. Every time.', sub:'Good executive communication is not clever. It is clear, structured, and written for the reader, not the writer.'}, right:{title:'The four-part structure', points:[
+  {head:'Context (one sentence)', body:'What is this email about and why does it exist? Never assume the reader knows.'},
+  {head:'What you need them to know', body:'The information they require. Organised by importance, not chronology.'},
+  {head:'What you need them to do', body:'One clear ask. Not buried at the bottom. Not implied. Stated directly.'},
+  {head:'What happens next', body:'What you will do, by when, and what they can expect from you.'},
+]}},
+
+{type:'example', left:{tag:'Before', heading:'The email no executive wants to read', quote:'"Hi, hope you\'re doing well. Just following up on the meeting we had last week about the quarterly targets because I wanted to check in and see if you had any thoughts on the proposal I sent over since I hadn\'t heard back and wanted to make sure you had everything you needed from our side before we proceed..."'}, right:{body:[
+  'This email has <strong>no clear ask</strong>, buries the purpose, and wastes the reader\'s attention on social padding.',
+  'Executives receive hundreds of emails. If your message does not make its point in the first two sentences, it will be deferred, misread, or ignored.',
+]}},
+
+{type:'example', left:{tag:'After', heading:'The same email, written for the reader'}, right:{body:[
+  '<strong>Subject: Decision needed: Q2 proposal — response requested by Friday</strong>',
+  'The proposal from last week\'s session is ready for your decision. I\'ve attached the updated version with the two amendments you requested.',
+  '<strong>What I need from you:</strong> Approval to proceed, or your preferred alternative if not. By Friday COB.',
+  'I\'ll issue the brief to the team on Monday once I hear from you.',
+  'This takes clarity, discipline, and the willingness to say what you mean without hedging. That is what professionals do.',
+]}},
+
+{type:'framework', label:'Track-specific: EVA vs EPA', title:'Professional presence looks different depending on your environment.', items:[
+  {num:'↑', name:'EVA: On-Camera Standards', desc:'Lighting (key light, not overhead). Background (neutral and uncluttered). Eye level (camera at eye height, not below). On-time means logged in 2 minutes early.'},
+  {num:'↑', name:'EVA: Digital Presence', desc:'Email signature consistent and professional. Response time communicated and honoured. Written tone consistent whether messaging your executive or a third party.'},
+  {num:'↑', name:'EPA: Physical Presence', desc:'How you enter a room, greet visitors, carry yourself in the office environment. Your executive\'s guests will form opinions about your executive based on their interaction with you.'},
+  {num:'↑', name:'EPA: Professional Attire', desc:'This is not about fashion. It is about signal. What you wear communicates how seriously you take the environment you are operating in.'},
+]},
+
+{type:'split', left:{label:'What to say', title:'The words that build trust', body:'Clear. Direct. Specific. Useful.\n\n"I\'ll have this to you by 3pm Thursday. If anything changes I\'ll let you know before then."\n\n"I noticed the deck had two different versions of the revenue figure. I\'ve standardised to the one from the board report — please confirm this is correct."'}, right:{label:'What not to say', title:'The words that erode trust', body:'"I\'ll try to get to it."\n(You either will or you won\'t.)\n\n"Sorry for the late reply."\n(Every time you say this, you confirm a pattern. Fix the pattern instead.)\n\n"I\'m not sure but..."\n(If you don\'t know, say so clearly and say what you\'re doing to find out.)'}},
+
+{type:'activity', label:'Today\'s Assignment', title:'Build your Communication Protocol Suite', steps:[
+  {n:'1', title:'Rewrite the bad email', desc:'You\'ll receive a poorly written professional email. Rewrite it using the four-part structure. Maximum 150 words.', time:'15 minutes'},
+  {n:'2', title:'Write your personal protocol', desc:'Three rules you are committing to in your professional communications going forward. Specific, testable rules — not values.', time:'10 minutes'},
+  {n:'3', title:'Track-specific standards', desc:'EVA: note your current on-camera setup and what you will change. EPA: describe your professional presence standard for your first week with a client.', time:'10 minutes'},
+]},
+
+{type:'close', tag:'End of Session 2', title:'Every word you write is your executive\'s reputation on the line.', sub:'Build the habit of writing for the reader. Every time. Without exception. The standard does not drop because the message is short or the recipient is informal.', eob:'EOB Component: Communication Protocol Suite'}
+]},
+
+// ════════════════════════════════════════════════════════════
+// SESSION 3 — CARRY IT RIGHT
+// ════════════════════════════════════════════════════════════
+{
+title:"Carry It Right",
+num:"Session 3",
+slides:[
+{type:'cover', num:'Session 03', title:'Carry It\nRight', hook:'No one will tell you this in most training programmes. Your emotional presence has operational consequences. This session is the one people remember years into their careers.', corner:'03'},
+
+{type:'statement', bg:'dark', text:'An executive with the wrong EA doesn\'t just have an inefficient day. <em>They carry more weight.</em>'},
+
+{type:'stats', label:'The science behind this', title:'Emotional contagion is not a theory. It is a documented, measurable workplace phenomenon.', stats:[
+  {num:'70%', desc:'of employees say their manager\'s mood directly affects their own performance that day', source:'Gallup Workplace Research'},
+  {num:'2x', desc:'the productivity loss documented in teams where the EA or chief of staff has a negative emotional register', source:'MIT Sloan Management Review'},
+  {num:'42%', desc:'of executives report that their EA\'s energy significantly affects how they enter high-stakes meetings', source:'C-Suite Assistants Research'},
+]},
+
+{type:'content', left:{label:'What disposition actually is', title:'Not personality. Not mood. A professional choice.', sub:'This is not about being relentlessly positive. It is about being a neutral-to-positive presence in an already high-pressure environment.'}, right:{title:'The four disposition signals executives read', points:[
+  {head:'Facial expressiveness', body:'Not forced smiling — but an open, engaged expression that signals "I am present and I am fine." A blank or tense face reads as trouble brewing.'},
+  {head:'Response latency', body:'How long does it take you to respond to a request? Slowness reads as reluctance. Promptness reads as reliability.'},
+  {head:'Verbal register', body:'Short, clipped answers signal irritation. Full, clear answers signal competence and calm. Even in writing.'},
+  {head:'Energy consistency', body:'The executive should not be able to tell whether you had a bad morning. Not because you suppress yourself — because you manage yourself.'},
+]}},
+
+{type:'example', left:{tag:'Real consequence', heading:'The ESA who cost their client the pitch', quote:'"I could tell she was having a bad day from the moment I walked in. By the time I was in the car, I was already in my head about my own problems. I didn\'t close the deal."'}, right:{body:[
+  'This is a real account from an executive who was asked why a significant deal fell through.',
+  'The ESA had arrived flustered, made a series of small errors, and telegraphed stress. By the time the executive entered the meeting, <strong>the tone had already been set.</strong>',
+  'This is what "emotional contagion" looks like in practice. It is not dramatic. It is quiet, constant, and cumulative.',
+]}},
+
+{type:'split', left:{label:'What this is NOT asking you to do', title:'This is not toxic positivity', body:'You are not being asked to pretend everything is fine when it is not.\n\nYou are not being asked to suppress your humanity.\n\nYou are not being asked to never have a bad day.\n\nYou are being asked to manage the interface. The part of you that your executive and their world encounters.'}, right:{label:'What it IS asking', title:'Professional affect', body:'A doctor does not show their fear before surgery. A pilot does not express anxiety during turbulence. A lawyer does not wince when the judge makes a bad call.\n\nNot because they don\'t feel these things. Because their role demands they manage what they show.\n\nYou are proximity support. That comes with its own version of this discipline.'}},
+
+{type:'framework', label:'The four defaults to recognise in yourself', title:'Everyone has a stress response. The goal is to know yours before it affects your work.', items:[
+  {num:'1', name:'The Withdrawer', desc:'Goes quiet, slows down, becomes hard to reach. Executive reads this as disengagement or avoidance.'},
+  {num:'2', name:'The Overreactor', desc:'Becomes visibly stressed, frantic, or emotional. Executive now has to manage their EA in addition to managing everything else.', gold:true},
+  {num:'3', name:'The Curt Responder', desc:'Short answers, clipped tone, no warmth. Creates tension in every interaction without realising it.'},
+  {num:'4', name:'The Over-Explainer', desc:'Offers too much context, too many justifications, too many updates. Burns the executive\'s attention on things they didn\'t ask for.', dark:true},
+]},
+
+{type:'activity', label:'Today\'s Assignment', title:'Your Personal Operating Principles — Part 1', steps:[
+  {n:'1', title:'Identify your default', desc:'Which of the four patterns is yours under pressure? Be honest. Write one specific example of when it happened.', time:'10 minutes'},
+  {n:'2', title:'Design an intervention', desc:'What is the one thing you will do — specifically — to intercept your default before it affects your work? This is not a value. It is a procedure.', time:'10 minutes'},
+  {n:'3', title:'Write Principle 1 of your POP', desc:'One sentence. Your commitment to yourself about how you will carry yourself in a professional environment.', time:'10 minutes'},
+]},
+
+{type:'close', tag:'End of Session 3', title:'Your presence is part of your product.', sub:'This is one of the most important things this programme will teach you. The person who masters their own emotional register in a professional environment has an advantage that no tool, certification, or connection can replicate.', eob:'EOB Component: Personal Operating Principles (Part 1)'}
+]},
+
+// ════════════════════════════════════════════════════════════
+// SESSION 4 — THE MACHINE BEHIND THE MAGIC
+// ════════════════════════════════════════════════════════════
+{
+title:"The Machine Behind the Magic",
+num:"Session 4",
+slides:[
+{type:'cover', num:'Session 04', title:'The Machine\nBehind the Magic', hook:'Every executive who functions at a high level has a system operating underneath them. Most of them did not build it. You will.', corner:'04'},
+
+{type:'statement', bg:'teal', text:'A tool without a system is just another thing <em>consuming your attention.</em>'},
+
+{type:'content', left:{label:'The design problem', title:'Most EA setups are inherited chaos', sub:'Random folders. Multiple task lists. No single source of truth. Everything lives in someone\'s head or inbox.'}, right:{title:'What a designed executive environment looks like', points:[
+  {head:'One source of truth', body:'Everything the executive needs to know about a given project, relationship, or decision is in one place. Not three apps and an email thread.'},
+  {head:'Systematic capture', body:'Nothing important relies on memory. Every action, commitment, or follow-up is captured the moment it is created.'},
+  {head:'Visible priorities', body:'At any moment, anyone supporting the executive can see what matters most this week, this day, this hour.'},
+  {head:'Frictionless handoff', body:'When the executive needs information or action taken, the system makes it easy — not effortful.'},
+]}},
+
+{type:'framework', label:'Tool philosophy', title:'Every tool in your ecosystem should pass the test. If it doesn\'t, remove it.', items:[
+  {num:'?', name:'What does it replace?', desc:'A good tool removes friction that previously existed. If it adds friction instead, it is not the right tool.'},
+  {num:'?', name:'Who maintains it?', desc:'If the answer is not "me," it will not be maintained. Own the system.'},
+  {num:'?', name:'What happens if it breaks?', desc:'If the answer is "everything stops," you\'ve over-centralised on a single point of failure.'},
+  {num:'?', name:'Does my executive actually use it?', desc:'A beautiful system no one uses is decoration. Design for adoption, not aesthetics.'},
+]},
+
+{type:'split', left:{label:'The core toolkit (EVA)', title:'Notion + Gmail + Google Calendar + Slack/WhatsApp', body:'These four, mastered, are all you need for 80% of executive support work.\n\nNotion: the brain of the operation. Projects, contacts, decisions, notes.\nGmail: communication hub with labelling discipline.\nCalendar: the visible schedule and the thinking it requires.\nMessaging: rapid async communication with clear norms.'}, right:{label:'The core toolkit (EPA)', title:'The same stack, plus physical operations', body:'Everything on the left, plus:\n\nA physical filing system with clear naming.\nA daily briefing pack you prepare the night before.\nA travel and logistics protocol.\nAn office arrival and departure routine that makes you invisible until needed and present when called.'}},
+
+{type:'example', left:{tag:'Case study', heading:'The EA who built the system that scaled the company', quote:'"Before she set up our Notion workspace, I had 14 things I was tracking in my head. Six months later, three new people had joined and they were fully operational within a week because everything was documented."'}, right:{body:[
+  'This is a direct quote from a Lagos-based founder about his EVA.',
+  'The system she built did not just help him. <strong>It compounded.</strong> Each person who joined the organisation inherited a functioning environment instead of chaos.',
+  'That is what it means to build executive infrastructure, not just executive support.',
+]}},
+
+{type:'activity', label:'Today\'s Assignment', title:'Build Your Executive Dashboard', steps:[
+  {n:'1', title:'Map the ecosystem', desc:'List every project, relationship, and recurring process your hypothetical executive manages. Group them into 3-5 categories.', time:'15 minutes'},
+  {n:'2', title:'Build the dashboard', desc:'Using Notion or ClickUp, build a working dashboard with those categories. Each category gets a project database. Include status, priority, owner, and due date fields.', time:'40 minutes'},
+  {n:'3', title:'Document your system', desc:'Write one paragraph describing how your system works and how someone would use it on their first day. This is your EOB Workflow Blueprint.', time:'10 minutes'},
+]},
+
+{type:'close', tag:'End of Session 4', title:'The best executive support is almost invisible — because the system makes everything work.', sub:'Your goal is not to be needed in a reactive, firefighting way. Your goal is to have built something so solid that your executive never has to think about operational logistics again.', eob:'EOB Component: Workflow Blueprint'}
+]},
+
+// ════════════════════════════════════════════════════════════
+// SESSION 5 — YOUR NEW BEST FRIEND IS A ROBOT
+// ════════════════════════════════════════════════════════════
+{
+title:"Your New Best Friend is a Robot",
+num:"Session 5",
+slides:[
+{type:'cover', num:'Session 05', title:'Your New Best\nFriend is a Robot', hook:'AI is not coming for your job. But an EA who knows how to use AI is coming for the job of one who doesn\'t. Let\'s talk about what that actually means in practice.', corner:'05'},
+
+{type:'statement', bg:'dark', text:'The EAs who will thrive in the next decade are not the ones who fear AI. They\'re the ones who <em>use it to do things that weren\'t possible before.</em>'},
+
+{type:'stats', label:'The current state of AI in professional work', title:'You are already behind if you are not using these tools. The good news: this session changes that.', stats:[
+  {num:'80%', desc:'of knowledge workers now use some form of AI tool in their daily work', source:'Microsoft WorkLab, 2025'},
+  {num:'2-3hrs', desc:'saved per day by EAs who actively use AI for drafting, research, and summarisation', source:'SnackNation EA Research'},
+  {num:'40%', desc:'reduction in time spent on first-draft communication tasks when AI is integrated properly', source:'McKinsey Productivity Report, 2024'},
+]},
+
+{type:'content', left:{label:'What AI is actually good at', title:'Be specific. Most people use AI for the wrong things.', sub:'AI is a first-draft machine, a research accelerator, and a pattern-recogniser. It is not a decision-maker.'}, right:{title:'The four legitimate use cases in executive support', points:[
+  {head:'Drafting and editing', body:'First drafts of emails, briefing notes, meeting summaries, and proposals. You edit and improve — AI removes the blank page.'},
+  {head:'Research and synthesis', body:'Summarise long documents, extract key points from reports, compare options, and produce structured briefs from raw material.'},
+  {head:'Process automation', body:'Recurring tasks that follow a pattern — weekly updates, meeting agendas, status reports — can be partially automated with the right prompts and workflows.'},
+  {head:'Thinking partner', body:'Use AI to stress-test a plan, generate alternatives, identify what you might be missing, or draft scenarios. It is a useful intellectual sparring partner.'},
+]}},
+
+{type:'framework', label:'The ethics of AI in executive support', title:'There are things AI should never do in your role. Know them before you encounter them.', items:[
+  {num:'✗', name:'Never feed confidential information to public AI', desc:'Client names, financial data, strategic plans, sensitive communications. All of these stay offline. Non-negotiable.'},
+  {num:'✗', name:'Never send AI-generated content without review', desc:'AI makes things up. It presents false information confidently. Every piece of AI content must be read and verified by you before it leaves your hands.'},
+  {num:'✓', name:'Always disclose when relevant', desc:'If you used AI to draft something, and your executive or client asks, say so. Transparency builds trust. Hiding it erodes it.'},
+  {num:'✓', name:'Use it to raise your floor, not lower your standard', desc:'AI should produce faster first drafts, not lower-quality final ones. The standard of what leaves your desk does not change.'},
+]},
+
+{type:'example', left:{tag:'In practice', heading:'The EA who turned a 4-hour research task into 45 minutes'}, right:{body:[
+  'The brief: the executive was meeting with a potential partner in the renewable energy sector. She needed a competitive landscape summary, recent news on the company, and talking points.',
+  'Old method: 3-4 hours of manual web research, reading, and writing.',
+  '<strong>New method:</strong> AI-assisted research sprint with structured prompts, 45 minutes, human-reviewed and edited.',
+  'The output quality was the same. The time cost was radically different. That freed 3 hours for the tasks that actually require her judgment.',
+]}},
+
+{type:'activity', label:'Today\'s Assignment', title:'Build Your Personal Automation Library', steps:[
+  {n:'1', title:'The briefing note lab', desc:'Take the raw email data from today\'s exercise and use AI to produce a professional executive briefing note. Then improve it. Document your prompt.', time:'20 minutes'},
+  {n:'2', title:'Identify 3 recurring tasks', desc:'What three tasks in an EA role could be partially automated with a good AI prompt? Write the prompt for each one.', time:'15 minutes'},
+  {n:'3', title:'Write your AI ethics personal standard', desc:'One paragraph. What will you always do and never do with AI in a professional context?', time:'10 minutes'},
+]},
+
+{type:'close', tag:'End of Session 5', title:'Use AI to buy back time. Spend that time on the things only you can do.', sub:'Judgment, relationships, discretion, presence. These are irreplaceable. Use your tools to protect the space for them.', eob:'EOB Component: Technology Stack & Automation Library'}
+]},
+
+// ════════════════════════════════════════════════════════════
+// SESSION 6 — LOCK IT DOWN
+// ════════════════════════════════════════════════════════════
+{
+title:"Lock It Down",
+num:"Session 6",
+slides:[
+{type:'cover', num:'Session 06', title:'Lock It Down', hook:'You will know things about your executive and their business that most of the organisation never will. This session is about what you do with that trust.', corner:'06'},
+
+{type:'statement', bg:'teal', text:'The moment information leaves your hands in the wrong direction, <em>you cannot get it back.</em>'},
+
+{type:'content', left:{label:'The trust architecture', title:'Why confidentiality is not a rule — it is the foundation of the role', sub:'Executives share with their EAs because they have no choice. The alternative is doing everything themselves. That trust is fragile and it is yours to protect.'}, right:{title:'What information you will handle', points:[
+  {head:'Financial data', body:'Revenue figures, payroll information, investor communications, debt positions, cash flow. All of this may pass through you.'},
+  {head:'Personnel matters', body:'Performance reviews, disciplinary issues, hiring decisions, salary discussions. Often sensitive, always confidential.'},
+  {head:'Strategic plans', body:'Acquisitions, partnerships, pivots, exits. The executive\'s private strategic thinking belongs to no one else.'},
+  {head:'Personal information', body:'Health, family, relationships, private challenges. Executives are human beings. Treat what you know accordingly.'},
+]}},
+
+{type:'framework', label:'The four-layer security system', title:'Build this once. Maintain it always.', items:[
+  {num:'1', name:'Digital security', desc:'Strong, unique passwords. Two-factor authentication on all accounts. Encrypted storage for sensitive files. No confidential material in public AI tools.'},
+  {num:'2', name:'Physical security', desc:'Lock your screen when you leave your desk. Never leave sensitive documents visible. Print, review, and shred — do not print and leave.'},
+  {num:'3', name:'Communication security', desc:'Assume all digital communication can be read. Think before forwarding. Verify identities before sharing information.'},
+  {num:'4', name:'Behavioural security', desc:'What you do not say is as important as what you do. Do not confirm, deny, or comment on internal matters with people who have no need to know.'},
+]},
+
+{type:'example', left:{tag:'Real consequence', heading:'The £4.2 million data breach caused by an EA', quote:'"An employee with privileged access to executive communications forwarded a sensitive email to an external party believing it to be routine. It was not."'}, right:{body:[
+  'A 2023 UK Financial Conduct Authority investigation found that a significant percentage of corporate data breaches involve support staff with privileged access.',
+  'The person in this case was not malicious. They were <strong>careless because they had not thought through what they were handling.</strong>',
+  'That is what this session is designed to prevent.',
+]}},
+
+{type:'split', left:{label:'Building your SOP', title:'Standard Operating Procedures are not bureaucracy', body:'A SOP is a decision you make once about how to handle a recurring situation, so you never have to think about it again under pressure.\n\nExample: "Any document containing financial figures goes into the encrypted folder immediately. No exceptions. No shortcuts when I\'m in a hurry."'}, right:{label:'The bottoming principle', title:'Leave things better than you found them', body:'EVA: end every day with your email at zero, your task list updated, and your executive\'s key tools current.\n\nEPA: leave the office in the state it should be found in. Refill what was used. Replace what was moved. Report what broke.\n\nThis is not perfectionism. It is professionalism.'}},
+
+{type:'activity', label:'Today\'s Assignment', title:'Build Your Security & Operations Appendix', steps:[
+  {n:'1', title:'Threat mapping', desc:'List five ways confidential information could accidentally leave your hands in an EA role. For each one, write the protocol that prevents it.', time:'15 minutes'},
+  {n:'2', title:'Your personal SOP', desc:'Choose one recurring task in executive support and write a step-by-step SOP for it. It should be clear enough for someone else to follow on their first day.', time:'20 minutes'},
+  {n:'3', title:'EVA or EPA bottoming checklist', desc:'Write the end-of-day checklist for your track. What must be true before you can close your laptop or leave the office?', time:'10 minutes'},
+]},
+
+{type:'close', tag:'End of Session 6', title:'The executive trusts you with their most sensitive information. That is not normal. Honour it every single day.', sub:'Confidentiality is not a skill that shows up on your CV. It is a quality that is noticed in its absence — when it is too late.', eob:'EOB Component: Security & Operations Appendix'}
+]},
+
+// ════════════════════════════════════════════════════════════
+// SESSION 7 — THINK LIKE THE PERSON YOU SUPPORT
+// ════════════════════════════════════════════════════════════
+{
+title:"Think Like the Person You Support",
+num:"Session 7",
+slides:[
+{type:'cover', num:'Session 07', title:'Think Like the\nPerson You Support', hook:'Good judgment cannot be taught directly. But the frameworks that produce good judgment can be. This session is about what it looks like to think at the level of the person you support.', corner:'07'},
+
+{type:'statement', bg:'dark', text:'Your executive needs someone who can tell the difference between <em>what they asked for</em> and <em>what they actually need.</em>'},
+
+{type:'stats', label:'The decision landscape', title:'This is the environment your executive navigates. Your job is to reduce their cognitive burden, not add to it.', stats:[
+  {num:'50', desc:'high-stakes decisions a CEO makes per day, according to Harvard Business Review', source:'HBR CEO Time Study'},
+  {num:'60%', desc:'of executives report impaired judgment after prolonged decision-making sessions', source:'University of Cambridge, 2023'},
+  {num:'2.5x', desc:'faster decision-making in top-performing companies versus low-performers', source:'McKinsey & Company'},
+  {num:'30%', desc:'of executive time wasted on low-impact decisions — time your role should reclaim for them', source:'McKinsey Productivity Analysis'},
+]},
+
+{type:'framework', label:'The Jeff Bezos Framework', title:'Not all decisions are equal. The most important skill is knowing which kind you\'re facing.', items:[
+  {num:'1', name:'Type 1: One-Way Doors', desc:'Irreversible or very hard to reverse. Consequential. Require 90%+ of available information, vigorous debate, time.'},
+  {num:'2', name:'Type 2: Two-Way Doors', desc:'Reversible. Changeable. Require 70% of information and a bias toward action. Most decisions are Type 2.'},
+  {num:'3', name:'The trap', desc:'Treating Type 2 decisions like Type 1 creates paralysis and bottlenecks. Your role includes flagging which type is which.'},
+  {num:'4', name:'Your role', desc:'Prepare Type 1 decisions thoroughly. Give your executive permission to make Type 2 decisions quickly by framing them correctly.'},
+]},
+
+{type:'content', left:{label:'The escalation question', title:'When do you act alone and when do you wait?', sub:'This is the single most common failure mode in executive support. Over-escalating makes you a bottleneck. Under-escalating makes you a risk.'}, right:{title:'The IAR framework', points:[
+  {head:'I — Impact', body:'If I get this wrong, what is the consequence? Small and recoverable? Large and irreversible? Higher impact = more likely to escalate.'},
+  {head:'A — Authority', body:'Do I have explicit or implicit permission to make this call? Have I been trusted with this type of decision before?'},
+  {head:'R — Reversibility', body:'If I act and it is wrong, can it be undone without significant cost? More reversible = more likely to act.'},
+]}},
+
+{type:'example', left:{tag:'Scenario', heading:'The calendar that nearly cost the deal'}, right:{body:[
+  'An EVA receives a meeting request from a significant potential client for Thursday at 2pm. Her executive already has a board prep call at 2pm that was recently moved.',
+  '<strong>Option A:</strong> Decline the client request without checking. Efficient, but potentially costly.',
+  '<strong>Option B:</strong> Accept both. The executive will figure it out.',
+  '<strong>Option C:</strong> IAR the situation. Impact is high (potential deal). Authority is limited (she has not been given latitude on board meetings). Reversibility is medium.',
+  'The right answer: surface it immediately with a recommendation. "Two conflicts on Thursday at 2pm. Recommend we protect the board prep and offer the client 10am or 4pm. Confirm?"',
+]}},
+
+{type:'activity', label:'Today\'s Assignment', title:'Build Your Decision-Making Protocol', steps:[
+  {n:'1', title:'Map your escalation threshold', desc:'Write five scenarios an EA might face. For each, apply IAR and decide: act alone, flag with recommendation, or escalate for decision.', time:'15 minutes'},
+  {n:'2', title:'Design your decision principles', desc:'Write three personal principles that guide how you make decisions in the role. Not values — actual decision rules.', time:'15 minutes'},
+  {n:'3', title:'One complex scenario', desc:'Given the scenario your facilitator presents, work through it live using IAR and the Bezos framework. Present your recommendation.', time:'15 minutes'},
+]},
+
+{type:'close', tag:'End of Session 7', title:'The executive who trusts your judgment does not have to check on you. That is the goal.', sub:'Build the frameworks. Apply them consistently. Let your track record prove that your judgment is reliable. Over time, that earns you latitude you could not have been given on day one.', eob:'EOB Component: Decision-Making Protocol'}
+]},
+
+// ════════════════════════════════════════════════════════════
+// SESSION 8 — EVERYONE'S WATCHING
+// ════════════════════════════════════════════════════════════
+{
+title:"Everyone's Watching",
+num:"Session 8",
+slides:[
+{type:'cover', num:'Session 08', title:"Everyone's Watching", hook:'Your executive is not operating in isolation. They are at the centre of a web of people with competing needs, different levels of access, and strong opinions. You manage that web on their behalf.', corner:'08'},
+
+{type:'statement', bg:'teal', text:'You are not just your executive\'s EA. You are their <em>public-facing operating system.</em>'},
+
+{type:'content', left:{label:'The stakeholder ecosystem', title:'Everyone your executive interacts with has a relationship with you first', sub:'Before they get to the executive, most people go through you. That is leverage. Use it deliberately.'}, right:{title:'The four stakeholder circles', points:[
+  {head:'Inner circle: board and C-suite', body:'Highest access, highest stakes. Every interaction is political. Everything is noted. Be consistently professional, not warm-then-cold.'},
+  {head:'Extended team: department heads and direct reports', body:'They need the executive. They need to know where they stand in the queue. Your job: manage their access fairly and communicate consistently.'},
+  {head:'External partners: clients, investors, media, government', body:'They form their first impression of the organisation from how you treat them. Make every external interaction a credit to your executive.'},
+  {head:'Vendors and service providers', body:'Treat them with the same professionalism as the board. How you treat people with less perceived power is the most accurate signal of character.'},
+]}},
+
+{type:'example', left:{tag:'The cost of inconsistency', heading:'The EA who played favourites'}, right:{body:[
+  'A chief of staff at a Lagos-based financial services firm developed a reputation for being warm to senior visitors and curt with mid-level staff.',
+  'Within 18 months, middle management was routing around her to reach the executive directly. The executive\'s calendar became unmanageable.',
+  '<strong>The lesson:</strong> Consistency in how you treat people is not a nicety. It is an operational requirement.',
+  'Every person you interact with will talk to someone your executive knows. Often at the worst possible moment.',
+]}},
+
+{type:'framework', label:'The workday simulation structure', title:'What a well-run executive workday looks like from the EA\'s perspective.', items:[
+  {num:'↑', name:'EVA: The async workday', desc:'Morning: brief sent before executive starts. Review overnight communications and flag what needs action. Midday: standing items review. End of day: brief on tomorrow.'},
+  {num:'↑', name:'EVA: Communication traffic management', desc:'Not every message needs the executive. Triage, respond where you can, and surface the minimum required for their attention with clear next-action framing.'},
+  {num:'↑', name:'EPA: The physical workday', desc:'Executive arrives to a prepared environment. Visitor reception is professional. Office operates invisibly. Any issues resolved before they are noticed.'},
+  {num:'↑', name:'EPA: The schedule guardian', desc:'Your executive should finish the day with their energy roughly intact. Buffer time is protected. Unnecessary meetings are declined or shortened.'},
+]},
+
+{type:'split', left:{label:'⚠ Payment Gate — after this session', title:'A note on your place in the programme', body:'The Week 4 payment gate applies after Session 8. If you are on the deposit option, your balance of ₦100,000 is due by the end of this week.\n\nIf your circumstances have changed, contact Agency@mosaichci.com before the end of this week — not after.'}, right:{label:'What comes next', title:'Weeks 5–7 are where it gets real', body:'The first four weeks have been foundation. The next three are about putting it together under pressure.\n\nSession 9 is a live simulation. Come prepared. Come rested. Come ready to be tested.'}},
+
+{type:'activity', label:'Today\'s Assignment', title:'Your Stakeholder Protocol and Daily Playbook', steps:[
+  {n:'1', title:'Map the stakeholder universe', desc:'For a hypothetical executive, identify three people in each of the four circles. For each circle, write one communication rule.', time:'15 minutes'},
+  {n:'2', title:'Run the workday simulation', desc:'Your facilitator will walk you through a full executive workday scenario. You manage the calendar, the communications, and two unexpected situations.', time:'30 minutes'},
+  {n:'3', title:'Write your daily playbook', desc:'Morning routine, midday review, end-of-day close. One specific checklist for your track.', time:'15 minutes'},
+]},
+
+{type:'close', tag:'End of Session 8', title:'Every interaction is a brick. Build wisely.', sub:'Your reputation with every stakeholder your executive has is being built one interaction at a time. There is no neutral. Every interaction is either a deposit or a withdrawal.', eob:'EOB Component: Stakeholder Protocol & Daily Playbook'}
+]},
+
+// ════════════════════════════════════════════════════════════
+// SESSION 9 — IN THE DEEP END
+// ════════════════════════════════════════════════════════════
+{
+title:"In the Deep End",
+num:"Session 9",
+slides:[
+{type:'cover', num:'Session 09', title:'In the\nDeep End', hook:'Today there are no frameworks to hide behind. You will face real scenarios under real time pressure. This is the most important session in the programme. It is the one that tells you where you actually stand.', corner:'09'},
+
+{type:'statement', bg:'dark', text:'Competence under pressure is not the same as competence in a classroom. <em>Today we find out which one you have.</em>'},
+
+{type:'content', left:{label:'Why simulation matters', title:'The knowing-doing gap is the most dangerous gap in professional development', sub:'You can understand a framework perfectly and still freeze when it matters. Simulation is how you close that gap before it costs you.'}, right:{title:'What the research says about simulation learning', points:[
+  {head:'Retention', body:'People retain 10% of what they read, 20% of what they hear, but up to 75% of what they practice in realistic conditions. (Edgar Dale, Learning Pyramid)'},
+  {head:'Error cost', body:'In simulation, mistakes are data. In the real world, they have consequences. Today\'s errors make you better.'},
+  {head:'Instinct formation', body:'The goal of simulation is to build automatic responses — so when the calendar collapses at 7am, your hands know what to do before your brain catches up.'},
+]}},
+
+{type:'framework', label:'The four scenarios', title:'You will face one or more of these today. They are adapted from real situations reported by practicing EAs.', items:[
+  {num:'1', name:'The collapsed calendar', desc:'Three meetings have been moved. Two conflict. A VIP has arrived early. Your executive is in a call they cannot leave. You have 8 minutes.'},
+  {num:'2', name:'The founder across time zones', desc:'Your executive is in Dubai (GMT+4). You are in Lagos (GMT+1). A New York investor (GMT-5) needs a response in the next hour. Who does what, when?'},
+  {num:'3', name:'The escalating inbox', desc:'You return from lunch to 47 unread emails. Three are marked urgent. One has an attached document that requires action before 3pm. Process all of it correctly.'},
+  {num:'4', name:'The last-minute brief', desc:'Your executive has a meeting in 90 minutes with someone they have never met. All you have is a name and a LinkedIn. Prepare a briefing note.'},
+]},
+
+{type:'split', left:{label:'What we are assessing', title:'This is your SCOUTED evaluation in live conditions', body:'We are watching for:\n\nDrive — do you act or do you wait?\nConceptual Thinking — do you see what matters first?\nUtilitarian Thinking — do you prioritise correctly?\nEmpathy Practice — do you think about how your executive will receive this?\nTeam Awareness — do you know who to loop in and when?'}, right:{label:'What good looks like', title:'A few markers of excellence under pressure', body:'You state your logic out loud when you make a judgment call.\n\nYou name the trade-off when you make one.\n\nYou ask the right question instead of guessing.\n\nYou produce output that is usable, not just attempted.\n\nYou debrief honestly.'}},
+
+{type:'activity', label:"Today's Session", title:'Live Simulation — Full Session', steps:[
+  {n:'1', title:'Scenario briefing', desc:'You receive your scenario. You have two minutes to read it. No notes, no frameworks in front of you.', time:'2 minutes per person'},
+  {n:'2', title:'Execution', desc:'You work through the scenario live. The facilitator may introduce new variables mid-simulation.', time:'15-20 minutes per scenario'},
+  {n:'3', title:'Debrief', desc:'You present what you did and why. The group gives structured feedback. The facilitator names what worked and what did not.', time:'10 minutes'},
+]},
+
+{type:'close', tag:'End of Session 9', title:'You now know something about yourself that you couldn\'t know before.', sub:'Whatever happened today — use it. The person who treats their debrief seriously and changes something because of it is the person who graduates ready. The person who defends their choices learns nothing.', eob:'EOB Component: Simulation Evidence — document what you did, what you would do differently, and what the scenario taught you'}
+]},
+
+// ════════════════════════════════════════════════════════════
+// SESSION 10 — THE LONGER GAME
+// ════════════════════════════════════════════════════════════
+{
+title:"The Longer Game",
+num:"Session 10",
+slides:[
+{type:'cover', num:'Session 10', title:'The Longer\nGame', hook:'Task execution ends the moment the task is done. Project ownership creates something that lasts. This is the difference between someone your executive relies on and someone they cannot imagine replacing.', corner:'10'},
+
+{type:'statement', bg:'teal', text:'An executor does what they are told. An owner <em>does what needs to be done.</em>'},
+
+{type:'content', left:{label:'The distinction that changes everything', title:'Task vs. Project vs. Ownership', sub:'Most training programmes stop at task management. TalentWorks trains for the next level.'}, right:{title:'Three levels of engagement', points:[
+  {head:'Task level', body:'"Book the flight to Abuja." Done when booked. Success = completion.'},
+  {head:'Project level', body:'"Manage the executive\'s participation in the Abuja summit." Done when the executive returns prepared, rested, and having achieved their objectives. Success = outcome.'},
+  {head:'Ownership level', body:'"Manage all travel for this executive." Permanent responsibility. You design the system, maintain it, improve it, and protect it. Success = the executive never has to think about it again.'},
+]}},
+
+{type:'framework', label:'The lightweight project framework', title:'Four phases. One page. Enough for 80% of the projects an EA will manage.', items:[
+  {num:'1', name:'Scope', desc:'What is the outcome? What is out of scope? Who has decision authority? Write these down before you do anything else.'},
+  {num:'2', name:'Plan', desc:'What are the steps? Who owns each one? What are the dependencies? What could go wrong and how would you handle it?'},
+  {num:'3', name:'Execute', desc:'Run the plan. Communicate changes as they arise. Keep stakeholders informed before they ask. Close open items daily.'},
+  {num:'4', name:'Close', desc:'Document what happened, what worked, and what you would do differently. This becomes part of your operational knowledge base.'},
+]},
+
+{type:'example', left:{tag:'Case study', heading:'The EA who led the conference from Lagos'}, right:{body:[
+  'An EVA supporting a fintech founder was asked to "help organise" participation in a Singapore conference.',
+  'She built a full project charter: travel, visa, hotel, meeting scheduling, pre-briefings for every meeting, post-conference follow-up tracking.',
+  'The founder landed, executed, and left. <strong>He never once asked about logistics.</strong>',
+  'Eighteen months later, when he hired a full-time EA, he said: "I just want someone who does what she did in Singapore."',
+  'That is what project ownership earns.',
+]}},
+
+{type:'split', left:{label:'Leading without authority', title:'You are not the executive. But you are acting on their behalf.', body:'Most of the people you will coordinate with do not report to you. They do not have to listen to you. Except they do — because you represent someone they do need.\n\nThis is how that works:'}, right:{label:'The three tools of influence without authority', title:'Clarity, relationship, and competence', body:'Clarity: people follow clear direction. Vague requests are ignored.\n\nRelationship: people cooperate with people they like and trust. Build those bridges before you need them.\n\nCompetence: people defer to people who clearly know what they\'re doing. Show your work.'}},
+
+{type:'activity', label:'Today\'s Assignment', title:'Build Your Project Leadership Toolkit', steps:[
+  {n:'1', title:'Write a project charter', desc:'Your executive is participating in a major industry conference in three months. You manage everything. Write the one-page charter.', time:'20 minutes'},
+  {n:'2', title:'Map the influence landscape', desc:'Who are the people you would need to coordinate with for that project? Who has authority over what? How would you engage each one?', time:'15 minutes'},
+  {n:'3', title:'Present your approach', desc:'In 3 minutes, walk your cohort through how you would manage this project. Take questions.', time:'10 minutes'},
+]},
+
+{type:'close', tag:'End of Session 10', title:'The executives who never want to lose their EA are the ones whose EA owns outcomes, not just tasks.', sub:'Build the habit of taking responsibility for the full arc of what you touch. Not just the piece assigned to you. The whole thing.', eob:'EOB Component: Project Leadership Toolkit'}
+]},
+
+// ════════════════════════════════════════════════════════════
+// SESSION 11 — HOW TO NOT FALL APART
+// ════════════════════════════════════════════════════════════
+{
+title:"How to Not Fall Apart",
+num:"Session 11",
+slides:[
+{type:'cover', num:'Session 11', title:'How to Not\nFall Apart', hook:'This role is demanding in ways most people do not see from the outside. Proximity to power, access to sensitive information, constant availability expectations. This session is about sustaining yourself.', corner:'11'},
+
+{type:'statement', bg:'dark', text:'Burnout does not announce itself. It accumulates quietly until one day <em>you have nothing left to give.</em>'},
+
+{type:'stats', label:'The reality of burnout in support roles', title:'This is not a wellness lecture. This is risk management.', stats:[
+  {num:'70%', desc:'of C-suite support staff report experiencing burnout at some point in their career', source:'EA community research, 2024'},
+  {num:'18mo', desc:'average tenure of an EA who does not build sustainable work habits before their first burnout', source:'Industry analysis'},
+  {num:'3x', desc:'the quality degradation in an EA\'s output in the six weeks before burnout becomes visible to the executive', source:'Workplace performance research'},
+]},
+
+{type:'framework', label:'The four burnout trajectories', title:'Knowing which path you\'re on is the first step to getting off it.', items:[
+  {num:'1', name:'The Overcommitter', desc:'Says yes to everything. Never disappoints in the short term. Slowly loses all capacity for the things that matter. Resentment builds quietly.'},
+  {num:'2', name:'The Undisclosed Sufferer', desc:'Carries everything alone. Never flags problems. Until they cannot carry anymore — and then it all comes out at once, usually at the worst possible time.'},
+  {num:'3', name:'The Boundary-less Worker', desc:'Available 24/7. Responds to messages at midnight. Slowly becomes a different person. Cannot tell the difference between dedication and self-destruction.'},
+  {num:'4', name:'The Perfectionist Paralytic', desc:'Cannot submit anything until it is perfect. Increasingly slower to produce. Increasingly anxious about quality. Eventually stops producing altogether.'},
+]},
+
+{type:'content', left:{label:'Professional ethics in practice', title:'The things nobody told you but everyone assumes you know', sub:'These are not rules you will be given by an employer. They are qualities you bring or you don\'t.'}, right:{title:'The three ethical obligations of proximity', points:[
+  {head:'Conflict of interest', body:'You will sometimes know things that benefit you. Declaring conflicts is not optional. Acting on privileged information is not a grey area.'},
+  {head:'Confidentiality', body:'We covered this in Session 6. Revisit it now in the context of sustainability: carrying too much alone is both a burden and a risk. Know who you can talk to.'},
+  {head:'Representation', body:'You act on behalf of your executive. Every action you take in their name carries their reputation. When in doubt, ask. When uncertain, disclose.'},
+]}},
+
+{type:'split', left:{label:'Building your resilience toolkit', title:'Not motivation. Systems.', body:'Motivation is unreliable. Systems are not. The question is not "how do I stay motivated?" The question is "what do I do on the days when I am not motivated, that still produces the outcome?"\n\nWrite the procedure. Follow it on the hard days. Do not rely on feeling like it.'}, right:{label:'Energy management vs. time management', title:'The distinction that changes the conversation', body:'Time management asks: how do I fit more into my day?\n\nEnergy management asks: when am I at my best, and am I protecting that window for the work that matters most?\n\nAn EA who does their most demanding work when their energy is lowest will always underperform an EA who designs their day around their energy peaks.'}},
+
+{type:'activity', label:'Today\'s Assignment', title:'Your Personal Operating Principles — Complete', steps:[
+  {n:'1', title:'Identify your burnout trajectory', desc:'Which of the four is yours? Be honest. What is one sign you are heading that way that you can notice early?', time:'10 minutes'},
+  {n:'2', title:'Design your recovery procedure', desc:'Not if you burn out — when you notice the early signs. What specifically will you do? Name it. Write it down.', time:'15 minutes'},
+  {n:'3', title:'Complete your POP', desc:'You wrote Principle 1 in Session 3. Add Principles 2 and 3 now. Each one should be a specific, testable commitment to yourself.', time:'10 minutes'},
+]},
+
+{type:'close', tag:'End of Session 11', title:'You cannot pour from an empty cup. And your executive cannot afford an empty cup.', sub:'Sustainability is not selfishness. It is part of the professional contract. An EA who burns out inside six months has failed their executive as surely as one who never learned the tools.', eob:'EOB Component: Personal Operating Principles — Final Version'}
+]},
+
+// ════════════════════════════════════════════════════════════
+// SESSION 12 — BUILD YOUR BIBLE
+// ════════════════════════════════════════════════════════════
+{
+title:"Build Your Bible",
+num:"Session 12",
+slides:[
+{type:'cover', num:'Session 12', title:'Build Your\nBible', hook:'Eleven sessions of work. One document. Today is the day it becomes real.', corner:'12'},
+
+{type:'statement', bg:'teal', text:'Your EOB is not a homework submission. It is a <em>professional artefact that will be shown to the people who will hire you.</em>'},
+
+{type:'content', left:{label:'What the EOB is', title:'Executive Operating Blueprint', sub:'A professional portfolio that demonstrates your operational thinking, your tools, and your readiness to support an executive at the highest level.'}, right:{title:'The eleven components you are assembling today', points:[
+  {head:'From Session 1', body:'Partnership Philosophy'},
+  {head:'From Session 2', body:'Communication Protocol Suite'},
+  {head:'From Sessions 3 & 11', body:'Personal Operating Principles'},
+  {head:'From Session 4', body:'Workflow Blueprint'},
+  {head:'From Session 5', body:'Technology Stack & Automation Library'},
+  {head:'From Session 6', body:'Security & Operations Appendix'},
+  {head:'From Session 7', body:'Decision-Making Protocol'},
+  {head:'From Session 8', body:'Stakeholder Protocol & Daily Playbook'},
+  {head:'From Session 9', body:'Simulation Evidence'},
+  {head:'From Session 10', body:'Project Leadership Toolkit'},
+  {head:'Final submission', body:'EOB — Final Version (due today, presented in Session 14)'},
+]}},
+
+{type:'framework', label:'Quality criteria', title:'This is how your EOB will be assessed. Review each component against these standards.', items:[
+  {num:'1', name:'Specificity', desc:'Generic statements fail. "I prioritise well" is not a protocol. "I apply the Eisenhower Matrix every morning to the live task list" is.'},
+  {num:'2', name:'Evidence', desc:'Every principle should have at least one concrete example — either from the simulations in this programme or from your prior experience.'},
+  {num:'3', name:'Usability', desc:'Could someone walk into an executive role using your EOB as a guide? If yes, it is good. If they would be confused by it, it needs work.'},
+  {num:'4', name:'Voice', desc:'This is your document. It should sound like you — not like a textbook. Write it in the way you actually think.'},
+]},
+
+{type:'activity', label:'Today\'s Session', title:'EOB Assembly Sprint', steps:[
+  {n:'1', title:'Component review', desc:'Lay out all eleven components. Assess each one against the four quality criteria. Mark: Complete, Needs revision, Missing.', time:'15 minutes'},
+  {n:'2', title:'Quality circle', desc:'In pairs, swap your EOBs. Give feedback using the four criteria. Be specific and honest. This is the most useful thing someone will tell you before you present.', time:'20 minutes'},
+  {n:'3', title:'Revision sprint', desc:'Based on feedback, revise the weakest two components. Focus on specificity and evidence.', time:'20 minutes'},
+  {n:'4', title:'Final submission', desc:'Submit your complete EOB to the portal by end of today\'s session. This is the version you will present in Session 14.', time:'10 minutes'},
+]},
+
+{type:'close', tag:'End of Session 12', title:'You built something real today. Everything from here is refinement and presentation.', sub:'Two sessions remain. Session 13 is about what happens after graduation. Session 14 is your presentation. Come to both prepared.', eob:'EOB Component: All Components — Due Today'}
+]},
+
+// ════════════════════════════════════════════════════════════
+// SESSION 13 — READY OR NOT
+// ════════════════════════════════════════════════════════════
+{
+title:"Ready or Not",
+num:"Session 13",
+slides:[
+{type:'cover', num:'Session 13', title:'Ready\nor Not', hook:'This is where you learn what graduation actually means. Not a certificate. A door. This session shows you what is on the other side and how you walk through it.', corner:'13'},
+
+{type:'statement', bg:'dark', text:'Graduation from ESP is not the destination. It is the <em>beginning of the part that matters.</em>'},
+
+{type:'content', left:{label:'How TalentWorks works', title:'The path from graduate to placed ESA', sub:'Understanding the system you are about to enter is part of being ready for it.'}, right:{title:'Six stages from graduation to placement', points:[
+  {head:'1. Pool admission', body:'Based on your SCOUTED score. Not all graduates enter the pool. Only those who meet the threshold.'},
+  {head:'2. Dossier preparation', body:'Your professional profile — maintained and updated. This is what clients see before they meet you.'},
+  {head:'3. Client matching', body:'When an engagement becomes available, the Agency Lead matches it against the pool. Track, tools, style, sector, compensation.'},
+  {head:'4. NDA signing', body:'Before the client\'s identity is shared, you sign an NDA. Until that point, they are referenced by code only.'},
+  {head:'5. Placement interview', body:'A structured introduction facilitated by TalentWorks. You are briefed beforehand.'},
+  {head:'6. Deployment', body:'Documents signed, brief received, placement begins.'},
+]}},
+
+{type:'stats', label:'SCOUTED assessment — this session', title:'SCOUTED scoring begins today. This is what is being measured.', stats:[
+  {num:'S+C', desc:'Self-Awareness & Conceptual Thinking — assessed primarily via EOB and discussion', source:'SCOUTED Framework'},
+  {num:'O+U', desc:'Openness to Learning & Utilitarian Thinking — assessed via simulation performance and reflection quality', source:'SCOUTED Framework'},
+  {num:'T+E', desc:'Team Awareness & Empathy Practice — assessed via cohort interactions and disposition across the programme', source:'SCOUTED Framework'},
+  {num:'D', desc:'Drive — assessed via initiative patterns, proactivity evidence, and overall engagement quality across all 14 sessions', source:'SCOUTED Framework'},
+]},
+
+{type:'framework', label:'What clients actually look for', title:'Based on real client feedback from TalentWorks placements.', items:[
+  {num:'1', name:'Reliability first', desc:'"Does this person do what they say they will do?" No other quality compensates for unreliability.'},
+  {num:'2', name:'Good judgment fast', desc:'"Do I have to explain context every time, or do they read the situation?" Speed of calibration is the differentiator.'},
+  {num:'3', name:'Proactive communication', desc:'"Do I find out about problems before they become emergencies?" This is the most common gap.'},
+  {num:'4', name:'Discretion without being told', desc:'"Do I have to remind them about confidentiality, or is it instinctive?" The ones who have to be reminded never fully earn trust.'},
+]},
+
+{type:'activity', label:'Today\'s Session', title:'Placement Simulation', steps:[
+  {n:'1', title:'SCOUTED self-assessment', desc:'Using the framework, rate yourself honestly on each dimension. Write one piece of evidence for your highest rating and your lowest.', time:'15 minutes'},
+  {n:'2', title:'Track-specific simulation', desc:'EVA: multi-timezone urgency scenario — your executive, three stakeholders, two conflicts, one missing document. EPA: first week in an executive office — how do you approach day 1, 3, and 5?', time:'30 minutes'},
+  {n:'3', title:'Readiness gap closing', desc:'Based on the simulation: what one thing would have produced a better outcome? Write it. Fix it before Session 14.', time:'10 minutes'},
+]},
+
+{type:'close', tag:'End of Session 13', title:'One session left. Come ready to be proud of what you built.', sub:'Tomorrow is Session 14. Your EOB presentation. Everything from the past 13 sessions has been preparing you for that 15 minutes. Do not waste it.', eob:'EOB Component: Agency Readiness Documentation'}
+]},
+
+// ════════════════════════════════════════════════════════════
+// SESSION 14 — SHOW YOUR WORK
+// ════════════════════════════════════════════════════════════
+{
+title:"Show Your Work",
+num:"Session 14",
+slides:[
+{type:'cover', num:'Session 14', title:'Show Your\nWork', hook:'Seven weeks. Fourteen sessions. Today you show what you built — and more importantly, who you became in the process of building it.', corner:'14'},
+
+{type:'statement', bg:'teal', text:'The work you put in front of people today is the first thing the world will see. <em>Make it worth seeing.</em>'},
+
+{type:'content', left:{label:'Today\'s structure', title:'Three parts. No shortcuts.', sub:'This is your graduation presentation. It is formal, structured, and consequential. The facilitation team will use what they see today in your SCOUTED assessment.'}, right:{title:'The three parts of your presentation', points:[
+  {head:'Part 1: The Walk-Through (8 minutes)', body:'Take us through your EOB. Not every page — the parts that best demonstrate your thinking. Choose intentionally. Lead with your strongest work.'},
+  {head:'Part 2: The Reflection (4 minutes)', body:'What changed for you in this programme? Not what you learned — what changed. The difference matters. Learning is intellectual. Change is operational.'},
+  {head:'Part 3: Questions (3 minutes)', body:'The cohort and facilitation team will ask questions about your work, your choices, and your reasoning. Defend your thinking. Adjust if the challenge lands.'},
+]}},
+
+{type:'framework', label:'What makes a great EOB presentation', title:'This is what the facilitation team is watching for. Know it before you present.', items:[
+  {num:'↑', name:'Ownership, not recitation', desc:'The difference between reading your slides and owning your thinking is visible from the first sentence.'},
+  {num:'↑', name:'Specificity over generality', desc:'Every claim should be backed by a specific example, framework, or protocol from your EOB.'},
+  {num:'↑', name:'Honest reflection', desc:'We are more interested in your self-awareness about where you fell short than your confidence about where you succeeded.'},
+  {num:'↑', name:'Presence', desc:'How you carry yourself for these 15 minutes is itself an assessment of Session 3. Everything you learned, applied here.'},
+]},
+
+{type:'split', left:{label:'After today', title:'What comes next for each path', body:'Graduates who enter the pool: your onboarding begins. You will receive the Pool Member Handbook and your Pool ID.\n\nGraduates who do not enter the pool this cycle: you will receive honest, specific feedback. The door is not closed. But re-entry requires demonstrated development, not just reapplication.'}, right:{label:'For everyone', title:'What this programme gave you', body:'Not just a certificate. A way of thinking about your role.\n\nA set of frameworks that apply beyond executive support.\n\nA peer cohort of people who went through the same crucible.\n\nAnd proof — to yourself — that you can do hard things.'}},
+
+{type:'statement', bg:'dark', text:'The best executive support professionals are not recognised because they try hard. They are recognised because <em>the executive they support becomes more effective.</em>'},
+
+{type:'close', tag:'End of Session 14 · End of Stream 11', title:'This is just the beginning.', sub:'Obong Idiong was Tony Elumelu\'s EA before becoming CEO of Heirs Holdings. The role is a launchpad. What you do with it is up to you.\n\nCongratulations. Go be excellent.', eob:'EOB Component: Final Version — Due Today'}
+]}
+];
+
+// ── RENDER ENGINE ────────────────────────────────────────────
+let currentSession = 0;
+let currentSlide = 0;
+
+function buildSlide(s) {
+  if (s.type === 'cover') {
+    return `<div class="slide s-cover">
+      <div class="corner-mark">${s.corner}</div>
+      <div class="session-num">${s.num}</div>
+      <div class="session-title">${s.title.replace(/\n/g,'<br>')}</div>
+      <div class="session-hook">${s.hook}</div>
+    </div>`;
+  }
+  if (s.type === 'statement') {
+    const bg = s.bg === 'teal' ? '' : s.bg === 'gold' ? ' gold' : ' dark';
+    return `<div class="slide s-statement${bg}"><div class="stmt">${s.text}</div></div>`;
+  }
+  if (s.type === 'stats') {
+    return `<div class="slide s-stats">
+      <div class="stats-label">${s.label}</div>
+      <div class="stats-title">${s.title}</div>
+      <div class="stat-grid">${s.stats.map(st=>`<div class="stat-item"><div class="stat-num">${st.num}</div><div class="stat-desc">${st.desc}</div><div class="stat-source">${st.source}</div></div>`).join('')}</div>
+    </div>`;
+  }
+  if (s.type === 'content') {
+    return `<div class="slide s-content">
+      <div class="left-zone">
+        <div class="zone-label">${s.left.label}</div>
+        <div class="zone-title">${s.left.title}</div>
+        <div class="zone-sub">${s.left.sub}</div>
+      </div>
+      <div class="right-zone">
+        <div class="rz-title">${s.right.title}</div>
+        <ul class="point-list">${s.right.points.map(p=>`<li><div><strong>${p.head}</strong>${p.body}</div></li>`).join('')}</ul>
+      </div>
+    </div>`;
+  }
+  if (s.type === 'split') {
+    return `<div class="slide s-split">
+      <div class="col">
+        <div class="col-label">${s.left.label}</div>
+        <div class="col-title">${s.left.title}</div>
+        ${s.left.body.split('\n\n').map(p=>`<div class="col-body">${p}</div>`).join('')}
+      </div>
+      <div class="col">
+        <div class="col-label">${s.right.label}</div>
+        <div class="col-title">${s.right.title}</div>
+        ${s.right.body.split('\n\n').map(p=>`<div class="col-body">${p}</div>`).join('')}
+      </div>
+    </div>`;
+  }
+  if (s.type === 'framework') {
+    return `<div class="slide s-framework">
+      <div class="fw-label">${s.label}</div>
+      <div class="fw-title">${s.title}</div>
+      <div class="fw-grid">${s.items.map((it,i)=>`<div class="fw-item ${it.gold?'gold-top':it.dark?'dark-top':''}"><div class="fw-num">${it.num}</div><div class="fw-name">${it.name}</div><div class="fw-desc">${it.desc}</div></div>`).join('')}</div>
+    </div>`;
+  }
+  if (s.type === 'example') {
+    return `<div class="slide s-example">
+      <div class="ex-left">
+        <div class="ex-tag">${s.left.tag}</div>
+        <div class="ex-heading">${s.left.heading}</div>
+        ${s.left.quote ? `<div class="ex-quote">${s.left.quote}</div>` : ''}
+      </div>
+      <div class="ex-right">
+        ${s.right.body.map(p=>`<div class="ex-body">${p}</div>`).join('')}
+      </div>
+    </div>`;
+  }
+  if (s.type === 'activity') {
+    return `<div class="slide s-activity">
+      <div class="act-label">${s.label}</div>
+      <div class="act-title">${s.title}</div>
+      <div class="act-steps">${s.steps.map(st=>`<div class="act-step"><div class="step-n">${st.n}</div><div class="step-body"><div class="step-title">${st.title}</div><div class="step-desc">${st.desc}</div><div class="act-time">⏱ ${st.time}</div></div></div>`).join('')}</div>
+    </div>`;
+  }
+  if (s.type === 'close') {
+    return `<div class="slide s-close">
+      <div class="close-tag">${s.tag}</div>
+      <div class="close-title">${s.title}</div>
+      <div class="close-sub">${s.sub.replace(/\n\n/g,'<br><br>')}</div>
+      <div class="close-eob">${s.eob}</div>
+    </div>`;
+  }
+  return `<div class="slide"><div style="padding:60px;color:white">Slide type not found: ${s.type}</div></div>`;
+}
+
+function buildDeck(sessionIdx) {
+  const session = sessions[sessionIdx];
+  const deck = document.createElement('div');
+  deck.className = 'deck';
+  deck.id = `deck-${sessionIdx}`;
+  session.slides.forEach((s, i) => {
+    const slideEl = document.createElement('div');
+    slideEl.innerHTML = buildSlide(s);
+    const inner = slideEl.firstElementChild;
+    inner.classList.add('slide');
+    if (i === 0) inner.classList.add('active');
+    deck.appendChild(inner);
+  });
+  return deck;
+}
+
+function init() {
+  const stage = document.getElementById('stage');
+  sessions.forEach((_, i) => {
+    const deck = buildDeck(i);
+    if (i === 0) deck.classList.add('active');
+    stage.appendChild(deck);
+  });
+  updateUI();
+}
+
+function goToSession(idx) {
+  const prev = document.querySelector('.deck.active');
+  if (prev) prev.classList.remove('active');
+  currentSession = parseInt(idx);
+  currentSlide = 0;
+  document.getElementById(`deck-${currentSession}`).classList.add('active');
+  document.getElementById('session-select').value = idx;
+  updateUI();
+}
+
+function nextSlide() {
+  const deck = document.getElementById(`deck-${currentSession}`);
+  const slides = deck.querySelectorAll('.slide');
+  if (currentSlide < slides.length - 1) {
+    slides[currentSlide].classList.remove('active');
+    currentSlide++;
+    slides[currentSlide].classList.add('active');
+    updateUI();
+  } else if (currentSession < sessions.length - 1) {
+    goToSession(currentSession + 1);
+  }
+}
+
+function prevSlide() {
+  if (currentSlide > 0) {
+    const deck = document.getElementById(`deck-${currentSession}`);
+    const slides = deck.querySelectorAll('.slide');
+    slides[currentSlide].classList.remove('active');
+    currentSlide--;
+    slides[currentSlide].classList.add('active');
+    updateUI();
+  } else if (currentSession > 0) {
+    goToSession(currentSession - 1);
+    const deck = document.getElementById(`deck-${currentSession}`);
+    const slides = deck.querySelectorAll('.slide');
+    slides.forEach(s => s.classList.remove('active'));
+    currentSlide = slides.length - 1;
+    slides[currentSlide].classList.add('active');
+    updateUI();
+  }
+}
+
+function updateUI() {
+  const deck = document.getElementById(`deck-${currentSession}`);
+  const total = deck.querySelectorAll('.slide').length;
+  document.getElementById('slide-counter').textContent = `${currentSlide + 1} / ${total}`;
+  document.getElementById('prev-btn').disabled = currentSession === 0 && currentSlide === 0;
+  document.getElementById('next-btn').disabled = currentSession === sessions.length - 1 && currentSlide === total - 1;
+  const pct = ((currentSession * 14 + currentSlide) / (sessions.length * 14)) * 100;
+  document.getElementById('progress-fill').style.width = `${pct}%`;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextSlide();
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prevSlide();
+});
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
